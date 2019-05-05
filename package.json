@@ -1,0 +1,24 @@
+{
+  "name": "threebot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "node src/index.js debug",
+    "start": "node src/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://gitlab.com/Lucraft/threebot.git"
+  },
+  "author": "Lucraft",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/Lucraft/threebot/issues"
+  },
+  "homepage": "https://gitlab.com/Lucraft/threebot#readme",
+  "dependencies": {
+    "discord.js": "^11.4.2",
+    "colors": "^1.3.3"
+  }
+}
