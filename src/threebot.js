@@ -108,7 +108,7 @@ function broadcastModUpdate(modConfig) {
                             .setAuthor(authors)
                             .setThumbnail(modConfig.thumbnail)
                             .setColor(modConfig.color)
-                            .addField('Version', version);
+                            .addField('Game Version', version);
                         channel.send(embed);
                         cache[modConfig.name] = file.id;
                         cacheChanged = true;
