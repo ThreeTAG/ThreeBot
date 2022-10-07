@@ -1,121 +1,49 @@
 require('dotenv').config();
 
-const {Client, MessageEmbed} = require('discord.js');
-const curseforge = require("mc-curseforge-api");
-const fs = require("fs");
-const changelogGetter = require('./changelogGetter.js');
-const mods = require('./mods.js');
-const TurndownService = require('turndown')
-const turndownService = new TurndownService()
+// Require the necessary discord.js classes
+const {Client, GatewayIntentBits, EmbedBuilder} = require('discord.js');
+const DISCORD_TOKEN = process.env.DISCORD_BOT_TOKEN;
+const {XMLParser, XMLBuilder, XMLValidator} = require("fast-xml-parser");
+const parser = new XMLParser();
+const https = require("https");
 
-let cache = {};
-let cacheChanged = false;
+// Create a new client instance
+const client = new Client({intents: [GatewayIntentBits.Guilds]});
 
-const client = new Client();
-client.login(process.env.DISCORD_BOT_TOKEN);
-
-client.on('ready', () => {
-    console.log(`${client.user.tag} has logged in.`);
-    const interval = parseInt(process.env.UPDATE_INTERVAL);
-
-    loadCache(() => {
-        // Mod Update Broadcasts
-        setInterval(() => {
-            mods.mods.forEach((modConfig) => {
-                broadcastModUpdate(modConfig);
-            });
-        }, interval);
-
-        setTimeout(() => {
-            setInterval(() => {
-                saveCache();
-            }, interval);
-        }, interval / 2);
-    });
+// When the client is ready, run this code (only once)
+client.once('ready', () => {
+    console.log('Ready!');
 });
 
-/**
- *
- * @param {Mod} mod
- * @return ModFile
- */
-function getLatestFile(mod) {
-    let latestFile = null;
+// Command Listener
+client.on('interactionCreate', async interaction => {
+    if (!interaction.isChatInputCommand()) return;
 
-    for (let i = 0; i < mod.latestFiles.length; i++) {
-        if (!latestFile || latestFile.timestamp < mod.latestFiles[i].timestamp) {
-            latestFile = mod.latestFiles[i];
-        }
+    const {commandName} = interaction;
+
+    if (commandName === 'palladium') {
+        await getData('forge', (version, forgeLink) => {
+            getData('fabric', (version_, fabricLink) => {
+                interaction.reply('**Recent Version:** ' + version + '\n**Forge:** <' + forgeLink + '>\n**Fabric:** <' + fabricLink + '>')
+            });
+        });
     }
+});
 
-    return latestFile;
-}
+// Login to Discord with your client's token
+client.login(DISCORD_TOKEN);
 
-function saveCache() {
-    if (cacheChanged) {
-        cacheChanged = false;
-        fs.writeFile('modCache.json', JSON.stringify(cache), (err => {
-            if (err) {
-                console.log(err);
-                cacheChanged = true;
-            } else {
-                console.log('Cache saved!');
-            }
-        }));
-    }
-}
+function getData(type, callback) {
+    https.get('https://repo.repsy.io/mvn/lucraft/threetag/net/threetag/Palladium-' + type + '/maven-metadata.xml', response => {
+        let body = '';
 
-function loadCache(callback) {
-    fs.exists('modCache.json', (exists => {
-        if (exists) {
-            fs.readFile('modCache.json', ((err, data) => {
-                if (err) {
-                    console.log(err);
-                } else {
-                    cache = JSON.parse(data);
-                    callback();
-                }
-            }));
-        } else {
-            cache = {};
-            callback();
-        }
-    }));
-}
+        response.on('data', function (chunk) {
+            body += chunk;
+        });
 
-/**
- * @param {Object} modConfig
- */
-function broadcastModUpdate(modConfig) {
-    curseforge.getMod(modConfig.id).then((mod) => {
-        let authors = '';
-        for (let i = 0; i < mod.authors.length; i++) {
-            authors += mod.authors[i].name + (i < mod.authors.length - 1 ? ', ' : '');
-        }
-        client.channels.fetch(process.env.UPDATE_CHANNEL_ID).then(channel => {
-            if (channel.isText()) {
-                const file = getLatestFile(mod);
-                if (file.id !== cache[modConfig.name]) {
-                    changelogGetter.getChangelog(mod, file).then((changelog) => {
-                        let version = '';
-                        for (let i = 0; i < file.minecraft_versions.length; i++) {
-                            version += file.minecraft_versions[i] + (i < file.minecraft_versions.length - 1 ? ', ' : '');
-                        }
-                        const embed = new MessageEmbed()
-                            .setTitle(mod.name + ' Update!')
-                            .setDescription(turndownService.turndown(changelog))
-                            .setURL(mod.url + "/files/" + file.id)
-                            .setAuthor(authors)
-                            .setThumbnail(modConfig.thumbnail)
-                            .setColor(modConfig.color)
-                            .addField('Game Version', version);
-                        channel.send(embed);
-                        cache[modConfig.name] = file.id;
-                        cacheChanged = true;
-                        console.log('Broadcasted mod update for ' + modConfig.name);
-                    }).catch(console.error);
-                }
-            }
-        }).catch(console.error);
-    }).catch(console.error);
+        response.on('end', function () {
+            let jObj = parser.parse(body);
+            callback(jObj.metadata.versioning.latest, 'https://repo.repsy.io/mvn/lucraft/threetag/net/threetag/Palladium-' + type + '/' + jObj.metadata.versioning.latest + '/Palladium-' + type + '-' + jObj.metadata.versioning.latest + '-' + type + '.jar');
+        });
+    });
 }
