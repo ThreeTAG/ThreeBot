@@ -3,6 +3,7 @@ require('dotenv').config();
 
 const commands = [
     new SlashCommandBuilder().setName('palladium').setDescription('Gets download link for most recent Palladium dev-build'),
+    new SlashCommandBuilder().setName('pantheonsent').setDescription('Gets download link for most recent PantheonSent dev-build'),
 ].map(command => command.toJSON());
 
 const rest = new REST({version: '10'}).setToken(process.env.DISCORD_BOT_TOKEN);
