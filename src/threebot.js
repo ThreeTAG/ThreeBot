@@ -3,7 +3,8 @@ require('dotenv').config();
 // Require the necessary discord.js classes
 const {Client, GatewayIntentBits, EmbedBuilder} = require('discord.js');
 const DISCORD_TOKEN = process.env.DISCORD_BOT_TOKEN;
-const DEV_CHANNEL_ID = process.env.DEV_CHANNEL_ID;
+const PALLADIUM_CHANNEL_ID = process.env.PALLADIUM_CHANNEL_ID;
+const PANTHEONSENT_CHANNEL_ID = process.env.PANTHEONSENT_CHANNEL_ID;
 const {XMLParser, XMLBuilder, XMLValidator} = require("fast-xml-parser");
 const parser = new XMLParser();
 const https = require("https");
@@ -22,22 +23,20 @@ client.on('interactionCreate', async interaction => {
 
     const {commandName} = interaction;
 
-    if(interaction.channelId === DEV_CHANNEL_ID) {
-        if (commandName === 'palladium') {
-            await getData('forge', 'Palladium', (version, forgeLink) => {
-                getData('fabric', 'Palladium', (version_, fabricLink) => {
-                    interaction.reply('**Recent Version:** ' + version + '\n**Forge:** <' + forgeLink + '>\n**Fabric:** <' + fabricLink + '>')
-                });
+    if (commandName === 'palladium' && interaction.channelId === PALLADIUM_CHANNEL_ID) {
+        await getData('forge', 'Palladium', (version, forgeLink) => {
+            getData('fabric', 'Palladium', (version_, fabricLink) => {
+                interaction.reply('**Recent Version:** ' + version + '\n**Forge:** <' + forgeLink + '>\n**Fabric:** <' + fabricLink + '>')
             });
-        }
+        });
+    }
 
-        if (commandName === 'pantheonsent') {
-            await getData('forge', 'PantheonSent', (version, forgeLink) => {
-                getData('fabric', 'PantheonSent', (version_, fabricLink) => {
-                    interaction.reply('**Recent Version:** ' + version + '\n**Forge:** <' + forgeLink + '>\n**Fabric:** <' + fabricLink + '>')
-                });
+    if (commandName === 'pantheonsent' && interaction.channelId === PANTHEONSENT_CHANNEL_ID) {
+        await getData('forge', 'PantheonSent', (version, forgeLink) => {
+            getData('fabric', 'PantheonSent', (version_, fabricLink) => {
+                interaction.reply('**Recent Version:** ' + version + '\n**Forge:** <' + forgeLink + '>\n**Fabric:** <' + fabricLink + '>')
             });
-        }
+        });
     }
 });
 
